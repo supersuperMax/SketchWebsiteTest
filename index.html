@@ -30,11 +30,97 @@
         const ctx = canvas.getContext('2d');
         let isDrawing = false;
         let currentTool = 'line';
+        let curShape;
         let startX, startY;
         let shapes = [];
         let vertices = []
         
-        
+        class Vertex {
+            constructor(x, y, radius = 4) {
+                this.x = x;
+                this.y = y;
+                this.radius = radius;
+            }
+
+            draw(color = '#ff0000', radius = 4) {
+                // console.log('draw vertex', this.x, this.y);
+                ctx.fillStyle = color;
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, radius, 0, Math.PI * 2);
+                ctx.fill();
+            }
+
+            isHovered(x, y) {
+                const dx = x - this.x;
+                const dy = y - this.y;
+                console.log('is hovered', dx*dx + dy*dy < this.radius * this.radius);
+                return dx*dx + dy*dy < this.radius * this.radius;
+            }
+        }
+
+        function createShape(type, startX, startY, endX, endY) {
+            console.log('Create Shape', endX, endY);
+            let v1 = new Vertex(startX, startY);
+            let v2 = new Vertex(endX, endY);
+            switch (type) {
+                case 'line':
+                    return new Line(v1, v2);
+                case 'rectangle':
+                    return new Rectangle(v1, v2);
+
+                default:
+                    throw new Error("Invalid tool");
+                    return null;
+                    break;
+            }
+        }
+
+        class Shape {
+            constructor(vStart, vEnd) {
+                this.vertex1 = vStart;
+                this.vertex2 = vEnd;
+            }
+
+            draw() {
+                console.log('drawing shape');
+            }
+
+            getVertices() {
+                return [vertex1, vertex2]
+            }
+
+            type() {
+                console.log('Shape');
+            }
+        }
+
+        class Line extends Shape {
+            draw() {
+                // console.log('Draw line', this.vertex1.x, this.vertex1.y, this.vertex2.x, this.vertex2.y);
+                ctx.beginPath();
+                ctx.moveTo(this.vertex1.x, this.vertex1.y);
+                ctx.lineTo(this.vertex2.x, this.vertex2.y);
+                ctx.stroke();
+                this.vertex1.draw();
+                this.vertex2.draw();
+            }
+
+            type() {
+                console.log('line');
+            }
+        }
+
+        class Rectangle extends Shape {
+            draw() {
+                ctx.beginPath();
+                ctx.rect(this.vertex1.x, this.vertex1.y, this.vertex2.x - this.vertex1.x, this.vertex2.y - this.vertex1.y);
+                ctx.stroke();
+            }
+
+            type() {
+                console.log('rectangle');
+            }
+        }
 
         // Tools configuration
         function setTool(tool) {
@@ -43,70 +129,60 @@
             // document.getElementById(tool + 'Btn').classList.add('active');
         }
 
-        function drawVertices(shape) {
-            ctx.fillStyle = '#ff0000'; // Красный цвет
-            let points = [];
+        // function drawVertices(shape) {
+        //     ctx.fillStyle = '#ff0000'; // Красный цвет
+        //     let points = [];
             
-            if(shape.type === 'line') {
-                points = [
-                    {x: shape.x1, y: shape.y1},
-                    {x: shape.x2, y: shape.y2}
-                ];
-            } else if(shape.type === 'rectangle') {
-                const minX = Math.min(shape.x1, shape.x2);
-                const maxX = Math.max(shape.x1, shape.x2);
-                const minY = Math.min(shape.y1, shape.y2);
-                const maxY = Math.max(shape.y1, shape.y2);
+        //     if(shape.type === 'line') {
+        //         points = [
+        //             {x: shape.x1, y: shape.y1},
+        //             {x: shape.x2, y: shape.y2}
+        //         ];
+        //     } else if(shape.type === 'rectangle') {
+        //         const minX = Math.min(shape.x1, shape.x2);
+        //         const maxX = Math.max(shape.x1, shape.x2);
+        //         const minY = Math.min(shape.y1, shape.y2);
+        //         const maxY = Math.max(shape.y1, shape.y2);
                 
-                points = [
-                    {x: minX, y: minY},
-                    {x: maxX, y: minY},
-                    {x: maxX, y: maxY},
-                    {x: minX, y: maxY}
-                ];
-            }
+        //         points = [
+        //             {x: minX, y: minY},
+        //             {x: maxX, y: minY},
+        //             {x: maxX, y: maxY},
+        //             {x: minX, y: maxY}
+        //         ];
+        //     }
             
-            points.forEach(point => {
-                ctx.beginPath();
-                ctx.arc(point.x, point.y, 4, 0, Math.PI * 2);
-                ctx.fill();
-                // vertices.push(point)
-            });
-        }
+        //     points.forEach(point => {
+        //         ctx.beginPath();
+        //         ctx.arc(point.x, point.y, 4, 0, Math.PI * 2);
+        //         ctx.fill();
+        //         // vertices.push(point)
+        //     });
+        // }
 
-        function drawShape(shape) {
-            ctx.beginPath();
-            if(shape.type === 'line') {
-                ctx.moveTo(shape.x1, shape.y1);
-                ctx.lineTo(shape.x2, shape.y2);
-            } else if(shape.type === 'rectangle') {
-                const width = shape.x2 - shape.x1;
-                const height = shape.y2 - shape.y1;
-                ctx.rect(shape.x1, shape.y1, width, height);
-            }
-            ctx.stroke();
+        // function drawShape(shape) {
+        //     ctx.beginPath();
+        //     if(shape.type === 'line') {
+        //         ctx.moveTo(shape.x1, shape.y1);
+        //         ctx.lineTo(shape.x2, shape.y2);
+        //     } else if(shape.type === 'rectangle') {
+        //         const width = shape.x2 - shape.x1;
+        //         const height = shape.y2 - shape.y1;
+        //         ctx.rect(shape.x1, shape.y1, width, height);
+        //     }
+        //     ctx.stroke();
             
-            // Отрисовка вершин
-            drawVertices(shape);
-        }
+        //     // Отрисовка вершин
+        //     drawVertices(shape);
+        // }
 
-        function addVertices(shape) {
-            switch (shape.type) {
-                case 'line':
-                    vertices.push({x: shape.x1, y: shape.y1});
-                    vertices.push({x: shape.x2, y: shape.y2});
-                    break;
-            
-                default:
-                    console.log('incorrect shape.type:', shape.type);
-                    break;
-            }
-        }
+
         // Drawing logic
         canvas.onmousedown = (e) => {
             isDrawing = true;
             startX = e.offsetX;
             startY = e.offsetY;
+            curShape = createShape(currentTool, startX, startY, e.offsetX, e.offsetY);
         };
 
         canvas.onmousemove = (e) => {
@@ -115,46 +191,33 @@
             
             // Redraw all shapes
             shapes.forEach(shape => {
-                drawShape(shape);
+                shape.draw();
             });
             
-            // Draw current shape
-            ctx.beginPath();
-            if(currentTool === 'line') {
-                ctx.moveTo(startX, startY);
-                ctx.lineTo(e.offsetX, e.offsetY);
-            } else if(currentTool === 'rectangle') {
-                ctx.rect(startX, startY, e.offsetX - startX, e.offsetY - startY);
-            }
-            ctx.stroke();
+            curShape.vertex2.x = e.offsetX;
+            curShape.vertex2.y = e.offsetY;
+            curShape.draw();
+            // ctx.stroke();
 
         };
 
         canvas.onmouseup = (e) => {
             isDrawing = false;
-            const shape = {
-                type: currentTool,
-                x1: startX,
-                y1: startY,
-                x2: e.offsetX,
-                y2: e.offsetY
-            };
-            shapes.push(shape);
-            addVertices(shape);
-            drawShape(shape);
+            // const shape = createShape(currentTool, startX, startY, e.offsetX, e.offsetY);
+            // console.log('Push new Shape', startX, startY, e.offsetX, e.offsetY);
+            shapes.push(curShape);
+            // curShape.draw();
+            curShape.type();
         };
 
+        canvas.onmouseover = (e) => {
+            console.log(e.offsetX, e.offsetY);
+        }
         // Export to INP
         // No Assembly module
         function exportINP() {
-            console.log(vertices.length)
-
-            vertices.forEach(point => {
-                console.log(point.x, point.y)
-            });
-            // return;
             let center_x = canvas.width / 2;
-            let center_y = canvas.height /2;
+            let center_y = canvas.height / 2;
 
             let inpContent = '*Heading\n** Job name: Job-1 Model name: Model-1\n** Generated by: Abaqus/CAE 2023\n';
             
@@ -234,6 +297,7 @@
             link.style.display = 'block';
             link.click();
         }
+        setTool('line');
     </script>
 </body>
 </html>
