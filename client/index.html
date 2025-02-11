@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Abaqus INP Drawing Tool</title>
+    <style>
+        canvas {
+            border: 1px solid #000;
+            margin: 10px;
+        }
+        .tools {
+            margin: 10px;
+        }
+        button {
+            padding: 5px 15px;
+            margin: 0 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="tools">
+        <button onclick="setTool('line')">Line</button>
+        <button onclick="setTool('rectangle')">Rectangle</button>
+        <button onclick="exportINP()">Export to .inp</button>
+    </div>
+    <canvas id="canvas" width="800" height="600"></canvas>
+    <a id="downloadLink" style="display: none"></a>
+
+    <script>
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        let isDrawing = false;
+        let currentTool = 'line';
+        let curShape;
+        let startX, startY;
+        let shapes = [];
+        let vertices = []
+        
+        class Vertex {
+            constructor(x, y, radius = 4) {
+                this.x = x;
+                this.y = y;
+                this.radius = radius;
+            }
+
+            draw(color = '#ff0000', radius = 4) {
+                // console.log('draw vertex', this.x, this.y);
+                ctx.fillStyle = color;
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, radius, 0, Math.PI * 2);
+                ctx.fill();
+            }
+
+            isHovered(x, y) {
+                const dx = x - this.x;
+                const dy = y - this.y;
+                console.log('is hovered', dx*dx + dy*dy < this.radius * this.radius);
+                return dx*dx + dy*dy < this.radius * this.radius;
+            }
+        }
+
+        function createShape(type, startX, startY, endX, endY) {
+            console.log('Create Shape', endX, endY);
+            let v1 = new Vertex(startX, startY);
+            let v2 = new Vertex(endX, endY);
+            switch (type) {
+                case 'line':
+                    return new Line(v1, v2);
+                case 'rectangle':
+                    return new Rectangle(v1, v2);
+
+                default:
+                    throw new Error("Invalid tool");
+                    return null;
+                    break;
+            }
+        }
+
+        class Shape {
+            constructor(vStart, vEnd) {
+                this.vertex1 = vStart;
+                this.vertex2 = vEnd;
+            }
+
+            draw() {
+                console.log('drawing shape');
+            }
+
+            getVertices() {
+                return [vertex1, vertex2]
+            }
+
+            type() {
+                console.log('Shape');
+            }
+        }
+
+        class Line extends Shape {
+            draw() {
+                // console.log('Draw line', this.vertex1.x, this.vertex1.y, this.vertex2.x, this.vertex2.y);
+                ctx.beginPath();
+                ctx.moveTo(this.vertex1.x, this.vertex1.y);
+                ctx.lineTo(this.vertex2.x, this.vertex2.y);
+                ctx.stroke();
+                this.vertex1.draw();
+                this.vertex2.draw();
+            }
+
+            type() {
+                console.log('line');
+            }
+        }
+
+        class Rectangle extends Shape {
+            draw() {
+                ctx.beginPath();
+                ctx.rect(this.vertex1.x, this.vertex1.y, this.vertex2.x - this.vertex1.x, this.vertex2.y - this.vertex1.y);
+                ctx.stroke();
+            }
+
+            type() {
+                console.log('rectangle');
+            }
+        }
+
+        // Tools configuration
+        function setTool(tool) {
+            currentTool = tool;
+            // document.querySelectorAll('.tools button').forEach(btn => btn.classList.remove('active'));
+            // document.getElementById(tool + 'Btn').classList.add('active');
+        }
+
+        // function drawVertices(shape) {
+        //     ctx.fillStyle = '#ff0000'; // Красный цвет
+        //     let points = [];
+            
+        //     if(shape.type === 'line') {
+        //         points = [
+        //             {x: shape.x1, y: shape.y1},
+        //             {x: shape.x2, y: shape.y2}
+        //         ];
+        //     } else if(shape.type === 'rectangle') {
+        //         const minX = Math.min(shape.x1, shape.x2);
+        //         const maxX = Math.max(shape.x1, shape.x2);
+        //         const minY = Math.min(shape.y1, shape.y2);
+        //         const maxY = Math.max(shape.y1, shape.y2);
+                
+        //         points = [
+        //             {x: minX, y: minY},
+        //             {x: maxX, y: minY},
+        //             {x: maxX, y: maxY},
+        //             {x: minX, y: maxY}
+        //         ];
+        //     }
+            
+        //     points.forEach(point => {
+        //         ctx.beginPath();
+        //         ctx.arc(point.x, point.y, 4, 0, Math.PI * 2);
+        //         ctx.fill();
+        //         // vertices.push(point)
+        //     });
+        // }
+
+        // function drawShape(shape) {
+        //     ctx.beginPath();
+        //     if(shape.type === 'line') {
+        //         ctx.moveTo(shape.x1, shape.y1);
+        //         ctx.lineTo(shape.x2, shape.y2);
+        //     } else if(shape.type === 'rectangle') {
+        //         const width = shape.x2 - shape.x1;
+        //         const height = shape.y2 - shape.y1;
+        //         ctx.rect(shape.x1, shape.y1, width, height);
+        //     }
+        //     ctx.stroke();
+            
+        //     // Отрисовка вершин
+        //     drawVertices(shape);
+        // }
+
+
+        // Drawing logic
+        canvas.onmousedown = (e) => {
+            isDrawing = true;
+            startX = e.offsetX;
+            startY = e.offsetY;
+            curShape = createShape(currentTool, startX, startY, e.offsetX, e.offsetY);
+        };
+
+        canvas.onmousemove = (e) => {
+            if (!isDrawing) return;
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            // Redraw all shapes
+            shapes.forEach(shape => {
+                shape.draw();
+            });
+            
+            curShape.vertex2.x = e.offsetX;
+            curShape.vertex2.y = e.offsetY;
+            curShape.draw();
+            // ctx.stroke();
+
+        };
+
+        canvas.onmouseup = (e) => {
+            isDrawing = false;
+            // const shape = createShape(currentTool, startX, startY, e.offsetX, e.offsetY);
+            // console.log('Push new Shape', startX, startY, e.offsetX, e.offsetY);
+            shapes.push(curShape);
+            // curShape.draw();
+            curShape.type();
+        };
+
+        canvas.onmouseover = (e) => {
+            console.log(e.offsetX, e.offsetY);
+        }
+        // Export to INP
+        // No Assembly module
+        function exportINP() {
+            let center_x = canvas.width / 2;
+            let center_y = canvas.height / 2;
+
+            let inpContent = '*Heading\n** Job name: Job-1 Model name: Model-1\n** Generated by: Abaqus/CAE 2023\n';
+            
+            inpContent += '*Preprint, echo=NO, model=NO, history=NO, contact=NO\n';
+
+            inpContent += '**\n** PARTS\n**\n';
+
+            inpContent += '*Part, name=Part-1\n';
+
+            // Nodes section
+            let inpNodes = '*Node\n';
+            let inpElem = '*Element, type=T2D2\n';
+            let elemId = 1;
+            let nodeId = 1;
+
+            shapes.forEach(shape => {
+                switch (shape.type) {
+                    case 'line':
+                        inpElem += elemId++ + ', ' + nodeId + ', ' + (nodeId + 1) + '\n'
+                        inpNodes += nodeId++ + ', ' + ((shape.x1 - center_x)) + '., ' + (-(shape.y1 - center_y)) + '.\n';
+                        inpNodes += nodeId++ + ', ' + ((shape.x2 - center_x)) + '., ' + (-(shape.y2 - center_y)) + '.\n';
+                        break;
+                
+                    default:
+                        break;
+                }
+            });
+
+            inpContent += inpNodes + inpElem;
+
+            //generete set for section
+
+            inpContent += '*Nset, nset=Set-1';
+
+            switch (nodeId) {
+                case 1:
+                    console.log('empty sketch!!!!!!!');
+                    return;
+                    break;
+                case 3:
+                    inpContent += '\n 1, 2\n'
+                default:
+                    inpContent += ', generate\n 1, ' + (nodeId - 1) + ', 1\n';
+                    break;
+            }
+
+            inpContent += '*Elset, elset=Set-1';
+
+            switch (elemId) {
+                case 1:
+                    inpContent += '\n';
+                    break;
+                case 2:
+                    inpContent += '\n 1\n';
+                    break;
+                case 3:
+                    inpContent += '\n 1, 2\n';
+                    break;
+                default:
+                    inpContent += ', generate\n 1, ' + (elemId - 1) + ', 1\n';
+                    break;
+            }
+
+            inpContent += '** Section: Section-1\n*Solid Section, elset=Set-1, material=Material-1\n1.,\n';
+
+            // end Part
+            inpContent += '*End Part\n';
+
+            // ASSEMBLY
+            
+            // Create download
+            const blob = new Blob([inpContent], {type: 'text/plain'});
+            const url = URL.createObjectURL(blob);
+            const link = document.getElementById('downloadLink');
+            link.href = url;
+            link.download = 'drawing.inp';
+            link.style.display = 'block';
+            link.click();
+        }
+        setTool('line');
+    </script>
+</body>
+</html>
