@@ -21,6 +21,8 @@ app.get('/', async function (req, resp) {
     
 });
 
+app.use(express.json());
+
 // CRUD
 
 //project creation
@@ -29,10 +31,11 @@ app.post('/projects', async function(req, resp) {
         const project = new Project({
             ...req.body
         });
+
         await project.save();
         
         resp.status(201).send(project);
-        console.log('project created!', req.body, req);
+        console.log('project created!', req.body);
     } catch (error) {
         resp.status(400).send({ error: 'Project creation failed' });
     }
@@ -41,9 +44,7 @@ app.post('/projects', async function(req, resp) {
 //project view
 app.get('/projects/:id', async function (req, resp) {
     try {
-        const project = await Project.findOne({
-            _id: req.params._id
-        });
+        const project = await Project.findById(req.params.id);
 
         if (!project) {
             return resp.status(404).send();
